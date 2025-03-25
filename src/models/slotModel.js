@@ -1,8 +1,9 @@
 const db = require('../../config/dbConfig');
+const db_names = require('./src/utils/constants');
 
 exports.getSlotsFromDb = () => {
     return new Promise((resolve, reject) => {
-        db.query('SELECT * FROM _InfoRg970 WHERE Fld1043 IS NULL', (err, results) => {
+        db.query(`SELECT * FROM ${db_names.MAIN_TABLE} WHERE ${db_names.queries.START_TIME} IS NULL`, (err, results) => {
             if (err) {
                 reject(err);
             } else {
@@ -15,9 +16,9 @@ exports.getSlotsFromDb = () => {
 exports.getOccupiedSlots = () => {
     return new Promise((resolve, reject) => {
         const query = `
-      SELECT Fld1043 AS startTime, Fld1044 AS endTime 
-      FROM _InfoRg970 
-      WHERE Fld1043 IS NOT NULL AND Fld1044 IS NOT NULL`;
+      SELECT ${db_names.queries.START_TIME} AS startTime, ${db_names.queries.END_TIME} AS endTime 
+      FROM ${db_names.MAIN_TABLE} 
+      WHERE ${db_names.queries.START_TIME} IS NOT NULL AND ${db_names.queries.END_TIME} IS NOT NULL`;
         db.query(query, (err, results) => {
             if (err) {
                 reject(err);

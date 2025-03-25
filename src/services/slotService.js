@@ -3,6 +3,11 @@ const sberHealthConfig = require('../../config/sberHealthConfig');
 const { getOccupiedSlots } = require('../models/slotModel');
 const moment = require('moment');
 
+const SLOT_DURATION = 40;  // minutes
+const START_TIME = moment('09:00:00', 'HH:mm:ss');
+const END_TIME = moment('18:00:00', 'HH:mm:ss');
+const DAYS_AHEAD = 14;
+
 exports.getSlots = async () => {
     const params = {
         id: '01GK3E9NX9KNVZG6W30NR9GD9S',
@@ -39,41 +44,47 @@ exports.updateScheduleInSber = async (availableSlots) => {
         const response = await axios.post(sberHealthConfig.baseUrl, params, {
             headers: { Authorization: `Bearer ${sberHealthConfig.apiKey}` },
         });
-        console.log('Schedule is updated:', response.data);
+        console.log('Schedule updated:', response.data);
     } catch (error) {
         console.error('Error in updateScheduleInSber:', error);
     }
 };
 
-const SLOT_DURATION = 40; // minutes
-const START_TIME = moment('10:00:00', 'HH:mm:ss');
-const END_TIME = moment('18:00:00', 'HH:mm:ss');
-
 exports.getAvailableSlots = async () => {
     try {
         const occupiedSlots = await getOccupiedSlots();
-
         let availableSlots = [];
 
+        let currentDate = moment();
         let currentTime = START_TIME.clone();
-        while (currentTime.isBefore(END_TIME)) {
-            let slotEndTime = currentTime.clone().add(SLOT_DURATION, 'minutes');
 
-            let isOccupied = occupiedSlots.some(slot => {
-                const startTime = moment(slot.startTime, 'YYYY-MM-DD HH:mm:ss');
-                const endTime = moment(slot.endTime, 'YYYY-MM-DD HH:mm:ss');
-                return currentTime.isBetween(startTime, endTime, null, '[)');
-            });
+        for (let dayOffset = 0; dayOffset < DAYS_AHEAD; dayOffset++) {
+            currentTime = START_TIME.clone().add(dayOffset, 'days');
 
-            if (!isOccupied) {
-                availableSlots.push({
-                    from: currentTime.format('YYYY-MM-DDTHH:mm:ss'),
-                    to: slotEndTime.format('YYYY-MM-DDTHH:mm:ss'),
-                    active: true
+            while (currentTime.isBefore(END_TIME)) {
+                let slotEndTime = currentTime.clone().add(SLOT_DURATION, 'minutes');
+
+                let isOccupied = occupiedSlots.some(slot => {
+                    const startTime = moment(slot.startTime, 'YYYY-MM-DD HH:mm:ss');
+                    const endTime = moment(slot.endTime, 'YYYY-MM-DD HH:mm:ss');
+
+                    return (
+                        (currentTime.isBetween(startTime, endTime, null, '[)')) ||
+                        (slotEndTime.isBetween(startTime, endTime, null, '[)')) ||
+                        (currentTime.isBefore(startTime) && slotEndTime.isAfter(endTime))
+                    );
                 });
-            }
 
-            currentTime = slotEndTime;
+                if (!isOccupied) {
+                    availableSlots.push({
+                        from: currentTime.format('YYYY-MM-DDTHH:mm:ss'),
+                        to: slotEndTime.format('YYYY-MM-DDTHH:mm:ss'),
+                        active: true
+                    });
+                }
+
+                currentTime = slotEndTime;
+            }
         }
 
         return availableSlots;
