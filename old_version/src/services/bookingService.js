@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sberHealthConfig = require('../../config/sberHealthConfig');
+const sberHealthConfig = require('../config/sberHealthConfig');
 
 exports.sendBookingToSber = async (xmlData) => {
     const params = {

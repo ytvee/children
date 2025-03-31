@@ -1,5 +1,5 @@
-const db = require('../../config/dbConfig');
-const db_names = require('./src/utils/constants');
+const db = require('../config/dbConfig');
+const db_names = require('../utils/constants');
 
 exports.getSlotsFromDb = () => {
     return new Promise((resolve, reject) => {
